@@ -1,7 +1,13 @@
 #include <WiFi.h>
+#include <config.h>
 #include <HTTPClient.h>
 
 #define Gaz 4
+
+//TODO :
+//  sensor calibration (dynamic value) check w/ api with history
+//  
+//
 
 const char* ssid = "";
 const char* password = "";
@@ -21,7 +27,7 @@ int average = 0;
 void setup(){
   Serial.begin(9600);
   pinMode(Gaz, INPUT);
-  initWifi(ssid, password);
+  //initWifi(ssid, password);
 
   // init all readings to 0
   for(int thisReading = 0; thisReading < numReadings; thisReading++){
@@ -32,16 +38,16 @@ void setup(){
 void loop(){
   // read sensor value
   int gazsensor = Smoothing(Gaz);
-  int threashold;
+
   Serial.println(gazsensor);
 
   // TODO dynamic threashold (2000 is experimental)
   if(gazsensor > 2000){
-    //Serial.println("Alert");
+    Serial.println("Alert");
     //SendData(Host, gazsensor);
   }
 
-  delay(100);
+  delay(1000);
 }
 
 // send data to API
@@ -98,18 +104,16 @@ void initWifi(const char* SSID, const char* pwd){
 }
 
 int Smoothing(int _val){
-  total = total - readings[readIndex];
+  readIndex = 0;
+  while(readIndex <= numReadings){
+    total = total - readings[readIndex];
 
-  readings[readIndex] = analogRead(_val);
-  total = total + readings[readIndex];
+    readings[readIndex] = analogRead(_val);
+    total = total + readings[readIndex];
 
-  readIndex = readIndex + 1;
-
-  if(readIndex >= numReadings) {
-    readIndex = 0;
+    readIndex = readIndex + 1;
+    delay(10);
   }
-
   average = total / numReadings;
-
   return average;
 }
