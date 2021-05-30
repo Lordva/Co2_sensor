@@ -11,25 +11,40 @@ String Host = "";
 unsigned long lastTime = 0;
 unsigned long sendInterval = 600000;
 
+//smooting variables
+const int numReadings = 10;
+int readings[numReadings];
+int readIndex = 0;
+int total = 0;
+int average = 0;
+
 void setup(){
   Serial.begin(9600);
   pinMode(Gaz, INPUT);
   initWifi(ssid, password);
+
+  // init all readings to 0
+  for(int thisReading = 0; thisReading < numReadings; thisReading++){
+    readings[thisReading] = 0;
+  }
 }
 
 void loop(){
-  int gazsensor = analogRead(Gaz);
+  // read sensor value
+  int gazsensor = Smoothing(Gaz);
   int threashold;
   Serial.println(gazsensor);
 
+  // TODO dynamic threashold (2000 is experimental)
   if(gazsensor > 2000){
-    Serial.println("Alert");
-    SendData(Host, gazsensor);
+    //Serial.println("Alert");
+    //SendData(Host, gazsensor);
   }
-  
+
   delay(100);
 }
 
+// send data to API
 void SendData(String _host, int _value){
 
   if((millis() - lastTime) > sendInterval){
@@ -61,6 +76,7 @@ void SendData(String _host, int _value){
   lastTime = millis();
 }
 
+// connect to wifi
 void initWifi(const char* SSID, const char* pwd){
   int timer = 10000 + millis();
 
@@ -79,4 +95,21 @@ void initWifi(const char* SSID, const char* pwd){
     delay(1000);
   }
   Serial.println("Connecter au Wifi avec l'addresse : " + WiFi.localIP());
+}
+
+int Smoothing(int _val){
+  total = total - readings[readIndex];
+
+  readings[readIndex] = analogRead(_val);
+  total = total + readings[readIndex];
+
+  readIndex = readIndex + 1;
+
+  if(readIndex >= numReadings) {
+    readIndex = 0;
+  }
+
+  average = total / numReadings;
+
+  return average;
 }
