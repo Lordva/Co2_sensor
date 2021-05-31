@@ -1,16 +1,16 @@
 #include <WiFi.h>
-#include <config.h>
 #include <HTTPClient.h>
+#include "config.h"
 
-#define Gaz 4
+int Gaz=34;
 
 //TODO :
 //  sensor calibration (dynamic value) check w/ api with history
-//  
-//
+//  Fix Wifi connexion?? ish
+//  readme
 
-const char* ssid = "";
-const char* password = "";
+static const char* ssid = SSID;
+static const char* password = PASSWORD;
 
 String Host = "";
 
@@ -25,9 +25,19 @@ int total = 0;
 int average = 0;
 
 void setup(){
+  //Start Serial
   Serial.begin(9600);
+  while (!Serial)
+  {
+    ; //wait for serial connexion (for debug)
+  }
+  
   pinMode(Gaz, INPUT);
-  //initWifi(ssid, password);
+  //Start WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+  initWifi(ssid, password);
 
   // init all readings to 0
   for(int thisReading = 0; thisReading < numReadings; thisReading++){
@@ -39,13 +49,8 @@ void loop(){
   // read sensor value
   int gazsensor = Smoothing(Gaz);
 
+  Serial.print("reading: ");
   Serial.println(gazsensor);
-
-  // TODO dynamic threashold (2000 is experimental)
-  if(gazsensor > 2000){
-    Serial.println("Alert");
-    //SendData(Host, gazsensor);
-  }
 
   delay(1000);
 }
@@ -83,24 +88,52 @@ void SendData(String _host, int _value){
 }
 
 // connect to wifi
-void initWifi(const char* SSID, const char* pwd){
-  int timer = 10000 + millis();
+void initWifi(const char* _SSID, const char* _pwd){
+  int timer = 1000000 + millis();
+
+  //Scan Wifi at range Used for debug
+  ScanWifi();
+
+  Serial.print("Connecting to: ");
+  Serial.println(_SSID);
+  Serial.print("Using passord: ");
+  Serial.println(_pwd);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, pwd);
+  WiFi.begin(_SSID, _pwd);
 
-  Serial.print("Connection au Wifi ..");
+  Serial.print("Connexion au Wifi ..");
 
   while(WiFi.status() != WL_CONNECTED){
     Serial.print(".");
+    if(WiFi.status() == WL_CONNECT_FAILED){
+      Serial.print(WiFi.status());
+      Serial.println("[ERROR] Connection failed");
+    }
     if(millis() > timer){
       Serial.println("[ERROR] Timeout...");
       break;
-      return;
     }
     delay(1000);
   }
-  Serial.println("Connecter au Wifi avec l'addresse : " + WiFi.localIP());
+  Serial.print("Connecter au Wifi avec l'addresse : ");
+  Serial.println(WiFi.localIP());
+}
+
+void ScanWifi(){
+  Serial.println("Scanning for networks...");
+  int n = WiFi.scanNetworks();
+  if(n == 0){
+    Serial.println("[WARN] No network found");
+  } else{
+    Serial.print(n);
+    Serial.print(" networks found");
+    for (int i = 0; i < n; ++i){
+      Serial.print(i+1);
+      Serial.print(": ");
+      Serial.println(WiFi.SSID(i));
+    }
+  }
 }
 
 int Smoothing(int _val){
