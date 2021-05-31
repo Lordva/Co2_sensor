@@ -10,4 +10,4 @@ The server is a rasberryPi
 
 ### Notes
 
-Reading analog while using wifi resulted in the reading not working, turns out the ADC2 pin are unusable while on wifi, so I switch to an ADC1 pin
+Reading analog while using wifi resulted in the reading not working, turns out the ADC2 pins are unusable while on wifi, so I switched to an ADC1 pin

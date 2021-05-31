@@ -6,13 +6,12 @@ int Gaz=34;
 
 //TODO :
 //  sensor calibration (dynamic value) check w/ api with history
-//  Fix Wifi connexion?? ish
-//  readme
 
 static const char* ssid = SSID;
 static const char* password = PASSWORD;
 
-String Host = "";
+String host = Host;
+String location = Location;
 
 unsigned long lastTime = 0;
 unsigned long sendInterval = 600000;
@@ -52,17 +51,19 @@ void loop(){
   Serial.print("reading: ");
   Serial.println(gazsensor);
 
-  delay(1000);
+  //SendData(host, gazsensor, location);
+  delay(100);
 }
 
 // send data to API
-void SendData(String _host, int _value){
+void SendData(String _host, int _value, String _location){
 
   if((millis() - lastTime) > sendInterval){
+    Serial.println("Sending data to API...");
     if(WiFi.status() == WL_CONNECTED){
     HTTPClient http;
 
-    String serverPath = _host + "?reading=" + _value;
+    String serverPath = _host + "?location=" + _location + "?reading=" + _value;
 
     http.begin(serverPath.c_str());
 
@@ -92,7 +93,7 @@ void initWifi(const char* _SSID, const char* _pwd){
   int timer = 1000000 + millis();
 
   //Scan Wifi at range Used for debug
-  ScanWifi();
+  //ScanWifi();
 
   Serial.print("Connecting to: ");
   Serial.println(_SSID);
@@ -138,9 +139,8 @@ void ScanWifi(){
 
 int Smoothing(int _val){
   readIndex = 0;
+  total = 0;
   while(readIndex <= numReadings){
-    total = total - readings[readIndex];
-
     readings[readIndex] = analogRead(_val);
     total = total + readings[readIndex];
 
