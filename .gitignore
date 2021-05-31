@@ -1,3 +1,5 @@
 .vscode
 config.h
 test
+*.sqlite
+__pycache__
