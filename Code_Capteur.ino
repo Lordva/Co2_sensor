@@ -1,5 +1,5 @@
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <AsyncMqttClient.h>
 #include "config.h"
 
 int Gaz=34;
@@ -9,12 +9,13 @@ int Gaz=34;
 
 static const char* ssid = SSID;
 static const char* password = PASSWORD;
+static const IPAddress MQTTHost = HOST;
+static const int MQTTPort = PORT;
 
-String host = Host;
 String location = Location;
 
 unsigned long lastTime = 0;
-unsigned long sendInterval = 600000;
+unsigned long sendInterval = 60000;
 
 //smooting variables
 const int numReadings = 10;
@@ -22,6 +23,8 @@ int readings[numReadings];
 int readIndex = 0;
 int total = 0;
 int average = 0;
+
+AsyncMqttClient mqttClient;
 
 void setup(){
   //Start Serial
@@ -38,6 +41,8 @@ void setup(){
   delay(100);
   initWifi(ssid, password);
 
+  initMQTT();
+
   // init all readings to 0
   for(int thisReading = 0; thisReading < numReadings; thisReading++){
     readings[thisReading] = 0;
@@ -51,7 +56,6 @@ void loop(){
   Serial.print("reading: ");
   Serial.println(gazsensor);
 
-  //SendData(host, gazsensor, location);
   delay(100);
 }
 
@@ -59,27 +63,9 @@ void loop(){
 void SendData(String _host, int _value, String _location){
 
   if((millis() - lastTime) > sendInterval){
-    Serial.println("Sending data to API...");
+    Serial.println("Sending data to MQTT brocker");
     if(WiFi.status() == WL_CONNECTED){
-    HTTPClient http;
-
-    String serverPath = _host + "?location=" + _location + "?reading=" + _value;
-
-    http.begin(serverPath.c_str());
-
-    int httpResponceCode = http.GET();
-
-    if(httpResponceCode>0){
-      Serial.print("HTTP Responce code: ");
-      Serial.println(httpResponceCode);
-      String payload = http.getString();
-      Serial.println(httpResponceCode);
-    }
-    else {
-      Serial.print("[Error] Http error code : ");
-      Serial.println(httpResponceCode);
-    }
-    http.end();
+      mqttClient.publish("esp32/airquality", 1, true, String(_value).c_str());
   }
     else{
     Serial.println("Wifi disconnected !");
@@ -119,6 +105,12 @@ void initWifi(const char* _SSID, const char* _pwd){
   }
   Serial.print("Connecter au Wifi avec l'addresse : ");
   Serial.println(WiFi.localIP());
+}
+
+void initMQTT(){
+  Serial.println("Connecting to MQTT...");
+  mqttClient.setServer(MQTTHost, MQTTPort);
+  mqttClient.connect();
 }
 
 void ScanWifi(){
