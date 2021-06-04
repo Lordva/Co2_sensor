@@ -98,13 +98,20 @@ void initWifi(const char* _SSID, const char* _pwd){
 //Start Connection to MQTT broker
 void initMQTT(){
   int timer = 1000000 + millis();
+
   Serial.print("Connecting to MQTT on ");
   Serial.print(MQTT_HOST);
   Serial.print(":");
   Serial.println(MQTT_PORT);
-  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+
+  if(IS_MQTT_PROTECTED){
+    mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
+    Serial.println("MQTT connection is protected");
+  }
   
+  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
   mqttClient.connect();
+
   while(mqttClient.connected()){
     Serial.print(".");
     if(millis() > timer){
