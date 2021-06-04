@@ -2,20 +2,12 @@
 #include <AsyncMqttClient.h>
 #include "config.h"
 
+
 int Gaz=34;
 
-//TODO :
-//  sensor calibration (dynamic value) check w/ api with history
-
-static const char* ssid = SSID;
-static const char* password = PASSWORD;
-static const IPAddress MQTTHost = HOST;
-static const int MQTTPort = PORT;
-
-String location = Location;
-
-unsigned long lastTime = 0;
+long lastTime = 0;
 unsigned long sendInterval = 60000;
+//unsigned long sendInterval = 100000;
 
 //smooting variables
 const int numReadings = 10;
@@ -39,7 +31,7 @@ void setup(){
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
-  initWifi(ssid, password);
+  initWifi(SSID, PASSWORD);
 
   initMQTT();
 
@@ -52,26 +44,20 @@ void setup(){
 void loop(){
   // read sensor value
   int gazsensor = Smoothing(Gaz);
-
-  Serial.print("reading: ");
-  Serial.println(gazsensor);
-
-  delay(100);
+  SendData(gazsensor);
+  
+  delay(10000);
 }
 
-// send data to API
-void SendData(String _host, int _value, String _location){
-
-  if((millis() - lastTime) > sendInterval){
-    Serial.println("Sending data to MQTT brocker");
-    if(WiFi.status() == WL_CONNECTED){
-      mqttClient.publish("esp32/airquality", 1, true, String(_value).c_str());
+// send data to MQTT brocker
+void SendData(int _value){
+  Serial.println("Sending data to MQTT brocker");
+  if(WiFi.status() == WL_CONNECTED){
+    mqttClient.publish("esp32/airquality", 1, true, String(_value).c_str());
   }
-    else{
-    Serial.println("Wifi disconnected !");
-    }
+  else{
+  Serial.println("Wifi disconnected !");
   }
-  lastTime = millis();
 }
 
 // connect to wifi
@@ -108,8 +94,11 @@ void initWifi(const char* _SSID, const char* _pwd){
 }
 
 void initMQTT(){
-  Serial.println("Connecting to MQTT...");
-  mqttClient.setServer(MQTTHost, MQTTPort);
+  Serial.print("Connecting to MQTT on ");
+  Serial.print(MQTT_HOST);
+  Serial.print(":");
+  Serial.println(MQTT_PORT);
+  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
   mqttClient.connect();
 }
 
