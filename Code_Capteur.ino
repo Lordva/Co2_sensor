@@ -49,11 +49,11 @@ void loop(){
   delay(10000);
 }
 
-// send data to MQTT brocker
+// send data to MQTT broker
 void SendData(int _value){
-  Serial.println("Sending data to MQTT brocker");
   if(WiFi.status() == WL_CONNECTED){
     mqttClient.publish("esp32/airquality", 1, true, String(_value).c_str());
+    Serial.println("Sending MQTT packet");
   }
   else{
   Serial.println("Wifi disconnected !");
@@ -64,19 +64,20 @@ void SendData(int _value){
 void initWifi(const char* _SSID, const char* _pwd){
   int timer = 1000000 + millis();
 
-  //Scan Wifi at range Used for debug
+  // Scan Wifi at range Used for debug
   //ScanWifi();
 
   Serial.print("Connecting to: ");
   Serial.println(_SSID);
-  Serial.print("Using passord: ");
-  Serial.println(_pwd);
 
+  // Set wifi mode to station
   WiFi.mode(WIFI_STA);
+  // Begin connection
   WiFi.begin(_SSID, _pwd);
 
   Serial.print("Connexion au Wifi ..");
 
+  // wait for connection to happen
   while(WiFi.status() != WL_CONNECTED){
     Serial.print(".");
     if(WiFi.status() == WL_CONNECT_FAILED){
@@ -89,19 +90,31 @@ void initWifi(const char* _SSID, const char* _pwd){
     }
     delay(1000);
   }
-  Serial.print("Connecter au Wifi avec l'addresse : ");
+  // Print the local IP address
+  Serial.print(" Connected to Wifi with: ");
   Serial.println(WiFi.localIP());
 }
 
+//Start Connection to MQTT broker
 void initMQTT(){
+  int timer = 1000000 + millis();
   Serial.print("Connecting to MQTT on ");
   Serial.print(MQTT_HOST);
   Serial.print(":");
   Serial.println(MQTT_PORT);
   mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+  
   mqttClient.connect();
+  while(mqttClient.connected()){
+    Serial.print(".");
+    if(millis() > timer){
+      Serial.println("[ERROR] timed out");
+      break;
+    }
+  }
 }
 
+//Scan for wifi at range (for debuging)
 void ScanWifi(){
   Serial.println("Scanning for networks...");
   int n = WiFi.scanNetworks();
@@ -118,6 +131,7 @@ void ScanWifi(){
   }
 }
 
+// smooth the analogs values
 int Smoothing(int _val){
   readIndex = 0;
   total = 0;
